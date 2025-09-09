@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Marketing Site
+  marketing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - frontend
+    networks:
+      - cydebe-network
+
+  # Frontend Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_BASE_URL=http://backend-api:3004
+      - NEXT_PUBLIC_LOCAL_NETWORK_URL=http://backend-local-network:3002
+      - NEXT_PUBLIC_LOCAL_DEVICE_URL=http://backend-local-device:3003
+    depends_on:
+      - backend-api
+      - backend-local-network
+      - backend-local-device
+    networks:
+      - cydebe-network
+
+  # API Backend
+  backend-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+    networks:
+      - cydebe-network
+
+  # Local Network Backend
+  backend-local-network:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+    networks:
+      - cydebe-network
+
+  # Local Device Backend
+  backend-local-device:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+    networks:
+      - cydebe-network
+
+networks:
+  cydebe-network:
+    driver: bridge
+
+volumes:
+  cydebe-data:
+    driver: local

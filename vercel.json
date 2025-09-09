@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "marketing/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": "marketing/.next"
+      }
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": "frontend/.next"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/marketing/(.*)",
+      "dest": "/marketing/$1"
+    },
+    {
+      "src": "/app/(.*)",
+      "dest": "/frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/marketing/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "marketing/**/*.js": {
+      "runtime": "nodejs18.x"
+    },
+    "frontend/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
