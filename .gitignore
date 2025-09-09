@@ -84,3 +84,4 @@ temp/
 # API keys and secrets
 secrets/
 config/secrets.json
+.vercel

@@ -1,3 +1,5 @@
+'use client';
+
 import { useRouter } from 'next/router'
 import { useEffect, useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
@@ -28,6 +30,12 @@ export default function Room() {
   const [participants, setParticipants] = useState({})
   const [transcripts, setTranscripts] = useState({})
   const [analyticsData, setAnalyticsData] = useState([])
+  const [transcript, setTranscript] = useState('')
+  const [vocabulary, setVocabulary] = useState('')
+  const [pronunciation, setPronunciation] = useState('')
+  const [grammarTip, setGrammarTip] = useState('')
+  const [commonPhrases, setCommonPhrases] = useState([])
+  const [manualText, setManualText] = useState('')
   const recognitionRef = useRef(null)
 
   useEffect(() => {
@@ -183,17 +191,26 @@ export default function Room() {
     }).catch(err => console.error('Analytics error:', err))
   }
 
-  const updateTranscript = (participantId, transcript, translation) => {
-    setTranscripts(prev => ({
-      ...prev,
-      [participantId]: {
-        transcript,
-        translation,
-        timestamp: Date.now()
-      }
-    }))
-    
-    logAnalytics('translation', { transcript, translation, participantId })
+  const handleManualTranslate = async () => {
+    if (manualText) {
+      await handleTranslation(manualText)
+    }
+  }
+
+  const handleCommonPhrases = async () => {
+    const port = BACKENDS[backend].port
+    try {
+      const response = await fetch(`http://localhost:${port}/phrases`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromLang, toLang })
+      })
+      const data = await response.json()
+      setCommonPhrases(data.phrases || [])
+    } catch (error) {
+      console.error('Common phrases error:', error)
+      setCommonPhrases(['Common phrases unavailable'])
+    }
   }
 
   return (
@@ -295,10 +312,14 @@ export default function Room() {
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
-          <button onClick={toggleListening} style={{ background: isListening ? 'red' : 'green', color: 'white' }}>
-            {isListening ? 'Stop Listening' : 'Start Listening'}
-          </button>
-          <p>Transcript: {transcript}</p>
+          <label>Manual Text: </label>
+          <input 
+            type="text" 
+            value={manualText} 
+            onChange={(e) => setManualText(e.target.value)} 
+            placeholder="Enter text to translate"
+            style={{ width: '300px', marginRight: '0.5rem' }}
+          />
         </div>
 
         <div style={{ marginBottom: '1rem' }}>

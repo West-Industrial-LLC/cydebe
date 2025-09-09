@@ -1,5 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+/* Utah Fall Color Palette - Warm Aspen/Rocky Mountain Theme */
+:root {
+  --utah-crimson: #8b1538;
+  --utah-gold: #d4af37;
+  --utah-navy: #1e3a5f;
+  --aspen-orange: #d2691e;
+  --mountain-red: #b22222;
+  --fall-yellow: #daa520;
+  --sage-green: #708238;
+  --rocky-brown: #8b4513;
+  --sunset-pink: #f4a460;
+  --desert-tan: #f5deb3;
+  --sky-blue: #87ceeb;
+}
 
 * {
   box-sizing: border-box;
@@ -13,15 +25,15 @@ html {
 
 body {
   font-family: 'Inter', sans-serif;
-  line-height: 1.6;
-  color: #1a202c;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  line-height: 1.7;
+  color: #1a1a1a;
+  background: linear-gradient(135deg, #fdfbf7 0%, #f5f1e8 100%);
   overflow-x: hidden;
 }
 
-/* Nielsen's UX Principles - Clear Visual Hierarchy */
+/* Utah Fall Hero Section */
 .hero-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--utah-crimson) 0%, var(--utah-navy) 50%, var(--aspen-orange) 100%);
   position: relative;
   overflow: hidden;
 }
@@ -33,7 +45,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="%23ffffff" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="fall-leaves" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="3" fill="%23d4af37" opacity="0.2"/><circle cx="80" cy="80" r="2" fill="%23d2691e" opacity="0.3"/><circle cx="50" cy="30" r="2.5" fill="%23daa520" opacity="0.25"/><circle cx="70" cy="60" r="1.5" fill="%23f4a460" opacity="0.2"/></pattern></defs><rect width="100" height="100" fill="url(%23fall-leaves)"/></svg>');
   pointer-events: none;
 }
 
@@ -41,19 +53,29 @@ body {
   position: relative;
   z-index: 2;
   text-align: center;
-  padding: 120px 20px 80px;
+  padding: 140px 20px 100px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .main-title {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(2.5rem, 8vw, 6rem);
-  font-weight: 800;
-  color: white;
-  margin-bottom: 1.5rem;
-  line-height: 1.1;
-  text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  font-family: 'Libre Baskerville', serif;
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 700;
+  color: #fdfbf7;
+  letter-spacing: -0.02em;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  margin-bottom: 1rem;
+}
+
+.main-title {
+  font-family: 'Libre Baskerville', serif;
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 700;
+  color: #fdfbf7;
+  letter-spacing: -0.02em;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  margin-bottom: 1rem;
 }
 
 .hero-subtitle {
@@ -75,23 +97,26 @@ body {
   margin-bottom: 4rem;
 }
 
+/* Utah Fall Academic Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-  color: white;
+  background: linear-gradient(135deg, var(--utah-crimson) 0%, var(--mountain-red) 100%);
+  color: #fdfbf7;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 1.1rem;
-  padding: 1rem 2.5rem;
-  border-radius: 50px;
-  border: none;
+  padding: 1.2rem 3rem;
+  border-radius: 8px;
+  border: 2px solid var(--utah-gold);
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 8px 25px rgba(255,107,107,0.3);
+  box-shadow: 0 6px 20px rgba(139, 21, 56, 0.3);
   position: relative;
   overflow: hidden;
+  letter-spacing: 0.01em;
 }
 
 .btn-primary::before {
@@ -101,7 +126,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
   transition: left 0.5s;
 }
 
@@ -111,95 +136,90 @@ body {
 
 .btn-primary:hover {
   transform: translateY(-3px);
-  box-shadow: 0 15px 35px rgba(255,107,107,0.4);
+  box-shadow: 0 12px 30px rgba(139, 21, 56, 0.4);
+  background: linear-gradient(135deg, var(--mountain-red) 0%, var(--utah-crimson) 100%);
 }
 
 .btn-secondary {
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(10px);
-  color: white;
+  background: linear-gradient(135deg, #ffffff 0%, var(--desert-tan) 100%);
+  color: var(--utah-navy);
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 1.1rem;
-  padding: 1rem 2.5rem;
-  border-radius: 50px;
-  border: 2px solid rgba(255,255,255,0.3);
+  padding: 1.2rem 3rem;
+  border-radius: 8px;
+  border: 2px solid var(--utah-gold);
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(139, 21, 56, 0.1);
+  letter-spacing: 0.01em;
 }
 
 .btn-secondary:hover {
-  background: rgba(255,255,255,0.25);
-  border-color: rgba(255,255,255,0.5);
+  background: linear-gradient(135deg, var(--desert-tan) 0%, var(--sunset-pink) 100%);
   transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 21, 56, 0.15);
+  border-color: var(--utah-crimson);
 }
 
-/* Nielsen's UX - Consistent Navigation */
+/* Utah Fall Academic Navigation */
 .navbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background: rgba(255,255,255,0.95);
+  background: rgba(245, 222, 179, 0.95);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.2);
+  border-bottom: 2px solid var(--utah-gold);
   z-index: 1000;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(139, 21, 56, 0.1);
 }
 
 .navbar.scrolled {
-  background: rgba(255,255,255,0.98);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 70px;
+  background: rgba(245, 222, 179, 0.98);
+  box-shadow: 0 4px 20px rgba(139, 21, 56, 0.15);
 }
 
 .logo {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-weight: 800;
-  font-size: 1.5rem;
-  color: #1a202c;
+  font-family: 'Libre Baskerville', serif;
+  font-weight: 700;
+  font-size: 1.8rem;
+  color: var(--utah-crimson);
   text-decoration: none;
+  letter-spacing: -0.01em;
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 12px;
+  width: 45px;
+  height: 45px;
+  background: linear-gradient(135deg, var(--utah-crimson) 0%, var(--utah-navy) 100%);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #fdfbf7;
   font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.nav-links {
-  display: flex;
-  gap: 2rem;
-  align-items: center;
+  font-size: 1.3rem;
+  border: 2px solid var(--utah-gold);
 }
 
 .nav-link {
-  color: #4a5568;
+  color: var(--utah-navy);
   text-decoration: none;
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
-  transition: color 0.3s ease;
+  font-size: 1rem;
+  transition: all 0.3s ease;
   position: relative;
+  letter-spacing: 0.01em;
 }
 
 .nav-link::after {
@@ -209,7 +229,7 @@ body {
   left: 0;
   width: 0;
   height: 2px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--utah-crimson), var(--utah-gold));
   transition: width 0.3s ease;
 }
 
@@ -219,49 +239,60 @@ body {
 }
 
 .nav-link:hover {
-  color: #667eea;
+  color: var(--utah-crimson);
+  transform: translateY(-1px);
 }
 
-/* Nielsen's UX - Clear Information Architecture */
+/* Utah Fall Academic Sections */
 .section {
-  padding: 100px 20px;
+  padding: 120px 20px;
   max-width: 1200px;
   margin: 0 auto;
+  background: linear-gradient(135deg, var(--desert-tan) 0%, var(--sunset-pink) 100%);
 }
 
 .section-title {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-family: 'Libre Baskerville', serif;
+  font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 700;
-  color: #1a202c;
+  color: var(--utah-navy);
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.01em;
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(135deg, var(--utah-crimson), var(--utah-gold));
+  border-radius: 2px;
 }
 
 .section-subtitle {
-  font-size: 1.2rem;
-  color: #718096;
+  font-family: 'Crimson Text', serif;
+  font-size: 1.3rem;
+  color: var(--rocky-brown);
   text-align: center;
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto 4rem;
-  line-height: 1.6;
+  line-height: 1.7;
+  font-style: italic;
 }
 
-/* Nielsen's UX - Visual Feedback and Affordances */
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
-  margin-top: 4rem;
-}
-
+/* Utah Fall Academic Feature Cards */
 .feature-card {
-  background: white;
-  border-radius: 20px;
-  padding: 2.5rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-  border: 1px solid rgba(255,255,255,0.8);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, #ffffff 0%, var(--desert-tan) 100%);
+  border-radius: 16px;
+  padding: 3rem;
+  box-shadow: 0 8px 32px rgba(139, 21, 56, 0.1);
+  border: 2px solid var(--sunset-pink);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
@@ -273,7 +304,7 @@ body {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--utah-crimson), var(--utah-gold));
   transform: scaleX(0);
   transition: transform 0.3s ease;
 }
@@ -284,33 +315,39 @@ body {
 
 .feature-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: 0 20px 40px rgba(139, 21, 56, 0.15);
+  border-color: var(--utah-gold);
 }
 
 .feature-icon {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 16px;
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, var(--utah-crimson) 0%, var(--utah-navy) 100%);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
+  color: #fdfbf7;
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+  border: 2px solid var(--utah-gold);
+  box-shadow: 0 4px 12px rgba(139, 21, 56, 0.2);
 }
 
 .feature-title {
-  font-size: 1.5rem;
+  font-family: 'Libre Baskerville', serif;
+  font-size: 1.6rem;
   font-weight: 700;
-  color: #1a202c;
-  margin-bottom: 1rem;
+  color: var(--utah-navy);
+  margin-bottom: 1.2rem;
+  letter-spacing: -0.01em;
 }
 
 .feature-description {
-  color: #718096;
-  line-height: 1.6;
-  font-size: 1rem;
+  font-family: 'Crimson Text', serif;
+  color: var(--rocky-brown);
+  line-height: 1.7;
+  font-size: 1.1rem;
 }
 
 /* Nielsen's UX - Error Prevention and Recovery */
@@ -356,56 +393,54 @@ body {
   font-weight: 500;
 }
 
-/* Nielsen's UX - Recognition Rather Than Recall */
+/* Utah Fall Academic Testimonials */
 .testimonial-section {
-  background: #f8fafc;
+  background: linear-gradient(135deg, var(--sunset-pink) 0%, var(--desert-tan) 100%);
 }
 
 .testimonial-card {
-  background: white;
-  border-radius: 20px;
-  padding: 2.5rem;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #ffffff 0%, var(--desert-tan) 100%);
+  border-radius: 16px;
+  padding: 3rem;
+  box-shadow: 0 8px 32px rgba(139, 21, 56, 0.08);
+  border: 2px solid var(--sunset-pink);
   position: relative;
 }
 
-.testimonial-quote {
-  font-size: 1.2rem;
-  color: #4a5568;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-  font-style: italic;
+.testimonial-card::before {
+  content: '"';
+  position: absolute;
+  top: 20px;
+  left: 30px;
+  font-size: 4rem;
+  color: var(--utah-gold);
+  font-family: 'Libre Baskerville', serif;
+  opacity: 0.3;
 }
 
-.testimonial-author {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.testimonial-quote {
+  font-family: 'Crimson Text', serif;
+  font-size: 1.3rem;
+  color: var(--rocky-brown);
+  line-height: 1.7;
+  margin-bottom: 2rem;
+  font-style: italic;
+  padding-left: 2rem;
 }
 
 .author-avatar {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--utah-crimson) 0%, var(--utah-navy) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #fdfbf7;
   font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.author-info h4 {
-  font-weight: 600;
-  color: #1a202c;
-  margin-bottom: 0.25rem;
-}
-
-.author-info p {
-  color: #718096;
-  font-size: 0.9rem;
+  font-size: 1.4rem;
+  border: 3px solid var(--utah-gold);
+  box-shadow: 0 4px 12px rgba(139, 21, 56, 0.2);
 }
 
 /* Nielsen's UX - Aesthetic and Minimalist Design */
@@ -449,58 +484,61 @@ body {
   line-height: 1.6;
 }
 
-/* Nielsen's UX - Help and Documentation */
+/* Utah Fall Academic Footer */
 .footer {
-  background: #1a202c;
-  color: white;
-  padding: 60px 20px 30px;
+  background: linear-gradient(135deg, var(--utah-navy) 0%, var(--rocky-brown) 100%);
+  color: #fdfbf7;
+  padding: 80px 20px 40px;
+  position: relative;
 }
 
-.footer-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 3rem;
-  margin-bottom: 3rem;
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, var(--utah-gold), var(--utah-crimson));
 }
 
 .footer-section h3 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: white;
+  font-family: 'Libre Baskerville', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--utah-gold);
+  letter-spacing: -0.01em;
 }
 
 .footer-section p {
-  color: #a0aec0;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-}
-
-.footer-links {
-  list-style: none;
-}
-
-.footer-links li {
-  margin-bottom: 0.75rem;
+  font-family: 'Crimson Text', serif;
+  color: var(--desert-tan);
+  line-height: 1.7;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
 }
 
 .footer-links a {
-  color: #a0aec0;
+  font-family: 'Inter', sans-serif;
+  color: var(--sunset-pink);
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
+  font-size: 1rem;
 }
 
 .footer-links a:hover {
-  color: #667eea;
+  color: var(--utah-gold);
+  transform: translateX(5px);
 }
 
 .footer-bottom {
-  border-top: 1px solid #2d3748;
-  padding-top: 2rem;
+  border-top: 2px solid var(--utah-gold);
+  padding-top: 2.5rem;
   text-align: center;
-  color: #718096;
+  color: var(--desert-tan);
+  font-family: 'Crimson Text', serif;
+  font-size: 1rem;
 }
 
 /* Nielsen's UX - Flexibility and Efficiency of Use */

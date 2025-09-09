@@ -2,11 +2,8 @@
   "version": 2,
   "builds": [
     {
-      "src": "marketing/package.json",
-      "use": "@vercel/next",
-      "config": {
-        "distDir": "marketing/.next"
-      }
+      "src": "package.json",
+      "use": "@vercel/next"
     },
     {
       "src": "frontend/package.json",
@@ -18,27 +15,27 @@
   ],
   "routes": [
     {
-      "src": "/marketing/(.*)",
-      "dest": "/marketing/$1"
+      "src": "/api/(.*)",
+      "dest": "/frontend/api/$1"
     },
     {
-      "src": "/app/(.*)",
+      "src": "/demo/(.*)",
       "dest": "/frontend/$1"
     },
     {
+      "src": "/demo",
+      "dest": "/frontend/index.html"
+    },
+    {
+      "src": "/room",
+      "dest": "/frontend/room"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/marketing/$1"
+      "dest": "/$1"
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "marketing/**/*.js": {
-      "runtime": "nodejs18.x"
-    },
-    "frontend/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
   }
 }
