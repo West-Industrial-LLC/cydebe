@@ -9,7 +9,7 @@ import axios from 'axios'
 const JitsiMeeting = dynamic(() => import('@jitsi/react-sdk').then(mod => mod.JitsiMeeting), { ssr: false })
 
 const BACKENDS = {
-  api: { name: 'External AI', port: 3004, url: 'http://localhost:3004' },
+  api: { name: 'External AI', port: 3004, url: 'https://cydebe-backend-api.vercel.app' },
   network: { name: 'Local Network', port: 3002 },
   device: { name: 'Local Device', port: 3003 }
 }
@@ -17,30 +17,6 @@ const BACKENDS = {
 const LANGUAGES = {
   en: 'English',
   ru: 'Russian'
-}
-
-const JITSI_OPTIONS = {
-  free: {
-    name: 'Free Tier',
-    description: 'Basic features, 60min limit',
-    features: ['Basic video calls', 'Screen sharing', 'Chat'],
-    limitations: ['60 minute limit', 'Max 4 participants'],
-    cost: 0
-  },
-  platform: {
-    name: 'Platform Premium',
-    description: 'Unlimited calls, advanced features',
-    features: ['Unlimited duration', 'Up to 100 participants', 'Recording', 'Advanced features'],
-    cost: 0.01,
-    currency: 'USD'
-  },
-  user: {
-    name: 'Your API Key',
-    description: 'Use your own Jitsi configuration',
-    features: ['Your own Jitsi configuration', 'Custom domain support', 'Full control'],
-    cost: 0,
-    requirements: ['Valid Jitsi API key']
-  }
 }
 
 export default function Room() {
@@ -62,15 +38,17 @@ export default function Room() {
   const [commonPhrases, setCommonPhrases] = useState([])
   const [manualText, setManualText] = useState('')
   const [jitsiConfig, setJitsiConfig] = useState(null)
-  const [jitsiOptions, setJitsiOptions] = useState(JITSI_OPTIONS)
-  const [selectedJitsiOption, setSelectedJitsiOption] = useState('free')
-  const [userApiKey, setUserApiKey] = useState('')
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isTablet, setIsTablet] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [viewMode, setViewMode] = useState('video') // 'video' or 'transcript'
+  const [realTimeTranscript, setRealTimeTranscript] = useState('')
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [speechSupported, setSpeechSupported] = useState(false)
+  const [microphonePermission, setMicrophonePermission] = useState('unknown')
   const recognitionRef = useRef(null)
   const jitsiApiRef = useRef(null)
+  const transcriptTimeoutRef = useRef(null)
 
   useEffect(() => {
     // Check device type
@@ -93,64 +71,173 @@ export default function Room() {
   }, [room])
 
   useEffect(() => {
-    // Initialize speech recognition
-    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-      const recognition = new webkitSpeechRecognition()
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = fromLang === 'ru' ? 'ru-RU' : 'en-US'
+    // Check speech recognition support
+    if (typeof window !== 'undefined') {
+      setSpeechSupported('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)
+    }
 
-      recognition.onresult = (event) => {
-        let finalTranscript = ''
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript
-          }
+    // Check microphone permission
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'microphone' }).then(result => {
+        setMicrophonePermission(result.state)
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (room && speechSupported) {
+      initializeSpeechRecognition()
+    }
+  }, [room, fromLang, speechSupported])
+
+  const initializeSpeechRecognition = () => {
+    if (typeof window === 'undefined') return
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) return
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = fromLang === 'ru' ? 'ru-RU' : 'en-US'
+    recognition.maxAlternatives = 1
+
+    let finalTranscript = ''
+    let interimTranscript = ''
+
+    recognition.onstart = () => {
+      console.log('Speech recognition started')
+      setIsListening(true)
+      setIsTranscribing(true)
+      setMicrophonePermission('granted')
+    }
+
+    recognition.onresult = async (event) => {
+      interimTranscript = ''
+      finalTranscript = ''
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript
+        } else {
+          interimTranscript += transcript
         }
-        if (finalTranscript) {
-          setTranscript(finalTranscript)
-          handleTranslation(finalTranscript).then(translation => {
-            updateTranscript('current-user', finalTranscript, translation)
+      }
+
+      // Update real-time transcript
+      const currentTranscript = finalTranscript + interimTranscript
+      setRealTimeTranscript(currentTranscript)
+      setTranscript(finalTranscript)
+
+      // Show interim results in overlay
+      if (interimTranscript) {
+        updateTranscript('current-user', currentTranscript, '...translating...')
+      }
+
+      // Process final results
+      if (finalTranscript && finalTranscript.trim().length > 0) {
+        try {
+          const translation = await handleTranslation(finalTranscript.trim())
+          updateTranscript('current-user', finalTranscript.trim(), translation)
+
+          // Log analytics
+          logAnalytics('speech_transcribed', {
+            originalText: finalTranscript.trim(),
+            translatedText: translation,
+            fromLang,
+            toLang
           })
+
+          // Clear real-time transcript after processing
+          setTimeout(() => {
+            setRealTimeTranscript('')
+          }, 2000)
+
+        } catch (error) {
+          console.error('Translation error:', error)
+          updateTranscript('current-user', finalTranscript.trim(), 'Translation failed')
         }
       }
-
-      recognition.onend = () => {
-        setIsListening(false)
-      }
-
-      recognitionRef.current = recognition
     }
 
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error)
+      setIsListening(false)
+      setIsTranscribing(false)
+
+      if (event.error === 'not-allowed') {
+        setMicrophonePermission('denied')
+        alert('Microphone access denied. Please allow microphone access to use speech recognition.')
+      } else if (event.error === 'no-speech') {
+        // Restart recognition for continuous listening
+        setTimeout(() => {
+          if (recognitionRef.current && isListening) {
+            recognitionRef.current.start()
+          }
+        }, 1000)
       }
     }
-  }, [fromLang])
+
+    recognition.onend = () => {
+      console.log('Speech recognition ended')
+      setIsListening(false)
+      setIsTranscribing(false)
+
+      // Auto-restart if we're supposed to be listening
+      if (isListening) {
+        setTimeout(() => {
+          if (recognitionRef.current) {
+            recognitionRef.current.start()
+          }
+        }, 500)
+      }
+    }
+
+    recognitionRef.current = recognition
+  }
 
   const initializeJitsiRoom = async () => {
     try {
+      console.log('Initializing Jitsi room for:', room);
+      console.log('Backend URL:', `${BACKENDS[backend].url}/jitsi/create-room`);
+
       const response = await axios.post(`${BACKENDS[backend].url}/jitsi/create-room`, {
         roomName: room,
-        userApiKey: selectedJitsiOption === 'user' ? userApiKey : null,
-        usePlatformKey: selectedJitsiOption === 'platform'
-      })
+        usePlatformKey: true // Always use platform key
+      });
+
+      console.log('Jitsi room creation response:', response.data);
 
       if (response.data.success) {
-        setJitsiConfig(response.data.roomConfig)
+        setJitsiConfig(response.data.roomConfig);
+        console.log('Jitsi config set successfully:', response.data.roomConfig);
+      } else {
+        console.error('Failed to create room:', response.data);
+        alert('Failed to create Jitsi room. Please check your configuration.');
       }
     } catch (error) {
-      console.error('Failed to initialize Jitsi room:', error)
-      // Fallback to basic configuration
-      setJitsiConfig({
-        domain: 'meet.jit.si',
+      console.error('Failed to initialize Jitsi room:', error);
+      console.error('Error details:', error.response?.data || error.message);
+
+      // Fallback configuration for 8x8 VPAAS
+      const fallbackConfig = {
+        domain: '8x8.vc',
         roomName: room,
         configOverwrite: {
           startWithAudioMuted: true,
-          startWithVideoMuted: false
-        }
-      })
+          startWithVideoMuted: false,
+          prejoinPageEnabled: false
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          DEFAULT_BACKGROUND: '#1a1a1a'
+        },
+        jwt: null // Will work without JWT for basic functionality
+      };
+
+      console.log('Using fallback Jitsi configuration:', fallbackConfig);
+      setJitsiConfig(fallbackConfig);
     }
   }
 
@@ -188,13 +275,62 @@ export default function Room() {
     }
   }
 
+  const requestMicrophonePermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(track => track.stop())
+      setMicrophonePermission('granted')
+      return true
+    } catch (error) {
+      console.error('Microphone permission error:', error)
+      setMicrophonePermission('denied')
+      return false
+    }
+  }
+
+  const startListening = async () => {
+    if (!speechSupported) {
+      alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.')
+      return
+    }
+
+    if (microphonePermission === 'denied') {
+      alert('Microphone access is blocked. Please enable microphone access in your browser settings.')
+      return
+    }
+
+    if (microphonePermission === 'unknown' || microphonePermission === 'prompt') {
+      const granted = await requestMicrophonePermission()
+      if (!granted) return
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start()
+      } catch (error) {
+        console.error('Error starting speech recognition:', error)
+        // Try to restart if already started
+        if (error.name === 'InvalidStateError') {
+          setTimeout(() => startListening(), 1000)
+        }
+      }
+    }
+  }
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+    }
+    setIsListening(false)
+    setIsTranscribing(false)
+    setRealTimeTranscript('')
+  }
+
   const toggleListening = () => {
     if (isListening) {
-      recognitionRef.current?.stop()
-      setIsListening(false)
+      stopListening()
     } else {
-      recognitionRef.current?.start()
-      setIsListening(true)
+      startListening()
     }
   }
 
@@ -293,148 +429,15 @@ export default function Room() {
       [participantId]: { transcript, translation, timestamp: Date.now() }
     }))
 
-    // Auto-remove old transcripts after 10 seconds
+    // Auto-remove old transcripts after 30 seconds for better visibility
     setTimeout(() => {
       setTranscripts(prev => {
         const updated = { ...prev }
         delete updated[participantId]
         return updated
       })
-    }, 10000)
+    }, 30000)
   }
-
-  const handleJitsiOptionChange = (option) => {
-    setSelectedJitsiOption(option)
-    setShowApiKeyInput(option === 'user')
-    if (room) {
-      initializeJitsiRoom()
-    }
-  }
-
-  const renderJitsiOptions = () => (
-    <div style={{
-      background: 'rgba(255, 255, 255, 0.95)',
-      padding: isMobile ? '15px' : '20px',
-      borderRadius: '12px',
-      marginBottom: '20px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-    }}>
-      <h3 style={{
-        marginBottom: '15px',
-        fontSize: isMobile ? '18px' : '20px',
-        fontWeight: 'bold',
-        color: '#333'
-      }}>
-        Choose Your Jitsi Experience
-      </h3>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr 1fr' : 'repeat(3, 1fr)',
-        gap: '15px'
-      }}>
-        {Object.entries(jitsiOptions).map(([key, option]) => (
-          <div
-            key={key}
-            onClick={() => handleJitsiOptionChange(key)}
-            style={{
-              padding: '15px',
-              border: `2px solid ${selectedJitsiOption === key ? '#007bff' : '#e0e0e0'}`,
-              borderRadius: '8px',
-              background: selectedJitsiOption === key ? '#f8f9ff' : 'white',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            <h4 style={{
-              marginBottom: '8px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#333'
-            }}>
-              {option.name}
-            </h4>
-            <p style={{
-              marginBottom: '10px',
-              fontSize: '14px',
-              color: '#666'
-            }}>
-              {option.description}
-            </p>
-
-            {option.cost > 0 && (
-              <div style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#28a745',
-                marginBottom: '8px'
-              }}>
-                ${option.cost}/min
-              </div>
-            )}
-
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              <strong>Features:</strong>
-              <ul style={{ margin: '5px 0', paddingLeft: '15px' }}>
-                {option.features.map((feature, index) => (
-                  <li key={index}>{feature}</li>
-                ))}
-              </ul>
-              {option.limitations && (
-                <>
-                  <strong>Limitations:</strong>
-                  <ul style={{ margin: '5px 0', paddingLeft: '15px' }}>
-                    {option.limitations.map((limitation, index) => (
-                      <li key={index} style={{ color: '#dc3545' }}>{limitation}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {showApiKeyInput && (
-        <div style={{
-          marginTop: '20px',
-          padding: '15px',
-          background: '#f8f9fa',
-          borderRadius: '8px',
-          border: '1px solid #dee2e6'
-        }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '8px',
-            fontWeight: 'bold',
-            color: '#333'
-          }}>
-            Your Jitsi API Key:
-          </label>
-          <input
-            type="password"
-            value={userApiKey}
-            onChange={(e) => setUserApiKey(e.target.value)}
-            placeholder="Enter your Jitsi API key"
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ced4da',
-              borderRadius: '4px',
-              fontSize: '14px'
-            }}
-          />
-          <p style={{
-            marginTop: '8px',
-            fontSize: '12px',
-            color: '#666'
-          }}>
-            Your API key is stored locally and never sent to our servers.
-          </p>
-        </div>
-      )}
-    </div>
-  )
 
   return (
     <div style={{
@@ -479,13 +482,15 @@ export default function Room() {
       <div style={{
         flex: 1,
         display: 'flex',
-        position: 'relative'
+        position: 'relative',
+        flexDirection: isMobile || isTablet ? 'column' : 'row'
       }}>
         {/* Jitsi Container */}
         <div style={{
-          flex: isMobile || isTablet ? (sidebarOpen ? 0 : 1) : 1,
+          flex: isMobile || isTablet ? (viewMode === 'video' ? 1 : 0) : 0.6,
           position: 'relative',
-          transition: 'flex 0.3s ease'
+          transition: 'flex 0.3s ease',
+          display: isMobile || isTablet && viewMode !== 'video' ? 'none' : 'block'
         }}>
           {room && jitsiConfig && (
             <JitsiMeeting
@@ -528,6 +533,85 @@ export default function Room() {
             />
           )}
 
+          {/* Listening Indicator */}
+          {isListening && (
+            <div style={{
+              position: 'absolute',
+              top: isMobile ? '10px' : '20px',
+              right: isMobile ? '10px' : '20px',
+              zIndex: 1001,
+              display: 'flex',
+              alignItems: 'center',
+              background: 'rgba(220, 53, 69, 0.9)',
+              color: 'white',
+              padding: isMobile ? '6px 10px' : '8px 12px',
+              borderRadius: '20px',
+              fontSize: isMobile ? '12px' : '14px',
+              fontWeight: 'bold',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{
+                width: '12px',
+                height: '12px',
+                background: '#ff4757',
+                borderRadius: '50%',
+                marginRight: '8px',
+                animation: 'pulse 1.5s infinite'
+              }}></div>
+              🎤 Listening...
+            </div>
+          )}
+
+          {/* Real-time Transcript Display */}
+          {realTimeTranscript && (
+            <div style={{
+              position: 'absolute',
+              bottom: isMobile ? '80px' : '100px',
+              left: isMobile ? '10px' : '20px',
+              right: isMobile ? '10px' : '20px',
+              zIndex: 1001,
+              background: 'rgba(0, 123, 255, 0.9)',
+              color: 'white',
+              padding: isMobile ? '8px 12px' : '12px 16px',
+              borderRadius: '12px',
+              fontSize: isMobile ? '14px' : '16px',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+              backdropFilter: 'blur(10px)',
+              maxHeight: '100px',
+              overflowY: 'auto'
+            }}>
+              <div style={{ marginBottom: '4px', opacity: 0.8 }}>
+                Real-time: "{realTimeTranscript}"
+              </div>
+              <div style={{ fontSize: isMobile ? '12px' : '14px', opacity: 0.7 }}>
+                Processing speech...
+              </div>
+            </div>
+          )}
+
+          {/* Debug Info - Remove this in production */}
+          {process.env.NODE_ENV === 'development' && (
+            <div style={{
+              position: 'absolute',
+              top: '10px',
+              left: '10px',
+              zIndex: 1002,
+              background: 'rgba(0, 0, 0, 0.8)',
+              color: 'white',
+              padding: '8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontFamily: 'monospace'
+            }}>
+              <div>Room: {room}</div>
+              <div>Backend: {BACKENDS[backend].url}</div>
+              <div>Jitsi: {jitsiConfig ? `${jitsiConfig.domain}/${jitsiConfig.roomName}` : 'Not loaded'}</div>
+              <div>Listening: {isListening ? 'Yes' : 'No'}</div>
+            </div>
+          )}
+
           {/* Transcript Overlays */}
           <div style={{
             position: 'absolute',
@@ -548,7 +632,8 @@ export default function Room() {
                 fontFamily: 'Arial, sans-serif',
                 maxWidth: isMobile ? '250px' : '300px',
                 wordWrap: 'break-word',
-                backdropFilter: 'blur(10px)'
+                backdropFilter: 'blur(10px)',
+                border: data.translation === '...translating...' ? '2px solid #ffc107' : 'none'
               }}>
                 <div style={{
                   fontWeight: 'bold',
@@ -566,7 +651,7 @@ export default function Room() {
                 </div>
                 <div style={{
                   fontSize: isMobile ? '11px' : '12px',
-                  color: '#4CAF50',
+                  color: data.translation === '...translating...' ? '#ffc107' : '#4CAF50',
                   fontWeight: 'bold'
                 }}>
                   {data.translation}
@@ -575,6 +660,85 @@ export default function Room() {
             ))}
           </div>
         </div>
+
+        {/* Transcript Panel - Desktop Only */}
+        {!isMobile && !isTablet && (
+          <div style={{
+            flex: 0.4,
+            background: 'white',
+            borderLeft: '1px solid #e0e0e0',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '20px',
+              borderBottom: '1px solid #e0e0e0',
+              background: '#f8f9fa'
+            }}>
+              <h3 style={{
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#333'
+              }}>
+                Live Transcripts
+              </h3>
+            </div>
+            <div style={{
+              flex: 1,
+              padding: '20px',
+              overflowY: 'auto'
+            }}>
+              {Object.entries(transcripts).length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  color: '#666',
+                  fontStyle: 'italic',
+                  marginTop: '40px'
+                }}>
+                  No transcripts yet. Start speaking to see live translations.
+                </div>
+              ) : (
+                Object.entries(transcripts).map(([participantId, data]) => (
+                  <div key={participantId} style={{
+                    background: 'rgba(255, 255, 255, 0.95)',
+                    padding: '15px',
+                    borderRadius: '12px',
+                    marginBottom: '15px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                    border: data.translation === '...translating...' ? '2px solid #ffc107' : 'none'
+                  }}>
+                    <div style={{
+                      fontWeight: 'bold',
+                      marginBottom: '8px',
+                      fontSize: '14px',
+                      color: '#333'
+                    }}>
+                      {participantId === 'current-user' ? 'You' : `Participant ${participantId}`}
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      marginBottom: '8px',
+                      color: '#555',
+                      lineHeight: '1.4'
+                    }}>
+                      "{data.transcript}"
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: data.translation === '...translating...' ? '#ffc107' : '#4CAF50',
+                      fontWeight: 'bold',
+                      fontStyle: data.translation === '...translating...' ? 'italic' : 'normal'
+                    }}>
+                      {data.translation}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Sidebar */}
         <div style={{
@@ -592,15 +756,116 @@ export default function Room() {
           transition: 'transform 0.3s ease',
           boxShadow: isMobile || isTablet ? '-2px 0 10px rgba(0, 0, 0, 0.1)' : 'none'
         }}>
+          {/* Mobile/Tablet View Mode Controls */}
+          {(isMobile || isTablet) && (
+            <div style={{
+              padding: '15px',
+              borderBottom: '1px solid #e0e0e0',
+              background: '#f8f9fa',
+              display: 'flex',
+              gap: '10px'
+            }}>
+              <button
+                onClick={() => setViewMode('video')}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: viewMode === 'video' ? '#007bff' : '#e9ecef',
+                  color: viewMode === 'video' ? 'white' : '#333',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                📹 Video
+              </button>
+              <button
+                onClick={() => setViewMode('transcript')}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: viewMode === 'transcript' ? '#007bff' : '#e9ecef',
+                  color: viewMode === 'transcript' ? 'white' : '#333',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                💬 Transcripts
+              </button>
+            </div>
+          )}
+
           <div style={{
             padding: isMobile ? '15px' : '20px',
             flex: 1,
             overflowY: 'auto'
           }}>
-            {/* Jitsi Options */}
-            {renderJitsiOptions()}
-
-            {/* Language Learning Controls */}
+            {/* Mobile/Tablet Transcript View */}
+            {(isMobile || isTablet) && viewMode === 'transcript' ? (
+              <div>
+                <h3 style={{
+                  marginBottom: '20px',
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  color: '#333'
+                }}>
+                  Live Transcripts
+                </h3>
+                {Object.entries(transcripts).length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    color: '#666',
+                    fontStyle: 'italic',
+                    marginTop: '40px',
+                    padding: '20px'
+                  }}>
+                    No transcripts yet. Switch to Video view and start speaking to see live translations.
+                  </div>
+                ) : (
+                  Object.entries(transcripts).map(([participantId, data]) => (
+                    <div key={participantId} style={{
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      padding: '15px',
+                      borderRadius: '12px',
+                      marginBottom: '15px',
+                      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                      border: data.translation === '...translating...' ? '2px solid #ffc107' : 'none'
+                    }}>
+                      <div style={{
+                        fontWeight: 'bold',
+                        marginBottom: '8px',
+                        fontSize: '14px',
+                        color: '#333'
+                      }}>
+                        {participantId === 'current-user' ? 'You' : `Participant ${participantId}`}
+                      </div>
+                      <div style={{
+                        fontSize: '14px',
+                        marginBottom: '8px',
+                        color: '#555',
+                        lineHeight: '1.4'
+                      }}>
+                        "{data.transcript}"
+                      </div>
+                      <div style={{
+                        fontSize: '14px',
+                        color: data.translation === '...translating...' ? '#ffc107' : '#4CAF50',
+                        fontWeight: 'bold',
+                        fontStyle: data.translation === '...translating...' ? 'italic' : 'normal'
+                      }}>
+                        {data.translation}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              /* Language Learning Controls */
             <div style={{
               background: 'rgba(255, 255, 255, 0.95)',
               padding: isMobile ? '15px' : '20px',
@@ -873,9 +1138,17 @@ export default function Room() {
                 )}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.2); opacity: 0.7; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 }
