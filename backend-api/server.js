@@ -12,10 +12,10 @@ const PORT = process.env.PORT || 3004;
 
 // Jitsi configuration
 const JITSI_CONFIG = {
-  domain: process.env.JITSI_DOMAIN || 'meet.jit.si',
-  appId: process.env.JITSI_APP_ID,
+  domain: process.env.JITSI_DOMAIN || '8x8.vc',
+  appId: process.env.JITSI_APP_ID || 'vpaas-magic-cookie-71078428a33f405db2dd75cbee8a387f',
   appSecret: process.env.JITSI_APP_SECRET,
-  platformApiKey: process.env.PLATFORM_JITSI_API_KEY
+  platformApiKey: process.env.PLATFORM_JITSI_API_KEY || 'vpaas-magic-cookie-71078428a33f405db2dd75cbee8a387f'
 };
 
 // Example endpoint for translation using OpenAI
@@ -117,6 +117,14 @@ app.post('/phrases', async (req, res) => {
 app.post('/jitsi/create-room', async (req, res) => {
   const { roomName, userApiKey, usePlatformKey = false } = req.body;
 
+  console.log('Creating Jitsi room:', { roomName, usePlatformKey, hasUserApiKey: !!userApiKey });
+  console.log('Jitsi Config:', {
+    domain: JITSI_CONFIG.domain,
+    hasAppId: !!JITSI_CONFIG.appId,
+    hasAppSecret: !!JITSI_CONFIG.appSecret,
+    hasPlatformKey: !!JITSI_CONFIG.platformApiKey
+  });
+
   try {
     let jitsiConfig = {
       domain: JITSI_CONFIG.domain,
@@ -124,14 +132,14 @@ app.post('/jitsi/create-room', async (req, res) => {
       configOverwrite: {
         startWithAudioMuted: true,
         startWithVideoMuted: false,
-        disableModeratorIndicator: true,
+        disableModeratorIndicator: false,
         startScreenSharing: false,
         enableEmailInStats: false,
         prejoinPageEnabled: false,
-        disableDeepLinking: true,
-        hideConferenceSubject: true,
-        hideConferenceTimer: true,
-        hideParticipantsStats: true,
+        disableDeepLinking: false,
+        hideConferenceSubject: false,
+        hideConferenceTimer: false,
+        hideParticipantsStats: false,
         toolbarButtons: [
           'microphone', 'camera', 'desktop', 'fullscreen',
           'fodeviceselection', 'hangup', 'profile', 'chat',
@@ -142,7 +150,7 @@ app.post('/jitsi/create-room', async (req, res) => {
         ]
       },
       interfaceConfigOverwrite: {
-        DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+        DISABLE_JOIN_LEAVE_NOTIFICATIONS: false,
         SHOW_JITSI_WATERMARK: false,
         SHOW_WATERMARK_FOR_GUESTS: false,
         DEFAULT_BACKGROUND: '#1a1a1a',
@@ -203,17 +211,12 @@ app.post('/jitsi/create-room', async (req, res) => {
 // Generate JWT for Jitsi authentication
 async function generateJWT(roomName, userId, apiKey) {
   try {
-    if (!JITSI_CONFIG.appId || !JITSI_CONFIG.appSecret) {
-      // Fallback to basic JWT structure if secrets not configured
-      const header = {
-        alg: 'HS256',
-        typ: 'JWT'
-      };
-
+    // For Jitsi 8x8 VPAAS, use the API key directly
+    if (apiKey && apiKey.startsWith('vpaas-magic-cookie-')) {
       const payload = {
-        iss: JITSI_CONFIG.appId || 'cydebe-jitsi',
+        iss: 'chat',
         sub: JITSI_CONFIG.domain,
-        aud: JITSI_CONFIG.domain,
+        aud: 'jitsi',
         exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
         nbf: Math.floor(Date.now() / 1000) - 10,
         room: roomName,
@@ -228,12 +231,14 @@ async function generateJWT(roomName, userId, apiKey) {
         }
       };
 
-      // Mock JWT creation - in production use proper JWT library
-      const mockJWT = btoa(JSON.stringify(header)) + '.' + btoa(JSON.stringify(payload)) + '.signature';
-      return mockJWT;
+      return jwt.sign(payload, apiKey, { algorithm: 'HS256' });
     }
 
-    // Use proper JWT library if secrets are configured
+    // Fallback for other configurations
+    if (!JITSI_CONFIG.appSecret) {
+      throw new Error('Jitsi app secret not configured');
+    }
+
     const payload = {
       iss: JITSI_CONFIG.appId,
       sub: JITSI_CONFIG.domain,
