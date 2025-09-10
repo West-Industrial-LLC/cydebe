@@ -806,7 +806,7 @@ export default function Room() {
             overflowY: 'auto'
           }}>
             {/* Mobile/Tablet Transcript View */}
-            {(isMobile || isTablet) && viewMode === 'transcript' ? (
+            {(isMobile || isTablet) && viewMode === 'transcript' && (
               <div>
                 <h3 style={{
                   marginBottom: '20px',
@@ -864,8 +864,10 @@ export default function Room() {
                   ))
                 )}
               </div>
-            ) : (
-              /* Language Learning Controls */
+            )}
+
+            {/* Language Learning Controls */}
+            {(!(isMobile || isTablet) || viewMode === 'video') && (
             <div style={{
               background: 'rgba(255, 255, 255, 0.95)',
               padding: isMobile ? '15px' : '20px',
